@@ -47,6 +47,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+
+
     fun playSong(song: Song) {
         exoPlayer.setMediaItem(MediaItem.fromUri(song.uri)) //URI -- Uniformed Resource Identifier -- tells me hey here is the reference to the file. Need this to make it go.
         exoPlayer.prepare() //get it ready, boys!
@@ -70,6 +72,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         exoPlayer.release() //release the exoPlayer when we're done with it, so we don't leak memory.
         super.onCleared() //and then clear that viewModel like a toilet flush
+    }
+    val currentSong: Song
+        get() = exoPlayer.currentMediaItem?.let { mediaItem ->
+            mediaItem.mediaMetadata.durationMs?.let {
+                Song(
+                    uri = mediaItem.localConfiguration?.uri ?: Uri.EMPTY,
+                    title = mediaItem.mediaMetadata.title.toString(),
+                    artist = mediaItem.mediaMetadata.artist.toString(),
+                    duration = it //convert microseconds to milliseconds
+                )
+            }
+        } ?: Song(Uri.EMPTY, "Unknown", "Unknown", 0L) //if no song is playing, return a default song.
+    fun formatDurationUs(durationUs: Long): String {
+        val totalSeconds = durationUs / 1_000_000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return "%d:%02d".format(minutes, seconds)
     }
 }
 

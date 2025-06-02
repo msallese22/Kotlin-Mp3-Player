@@ -1,5 +1,6 @@
 package com.example.mycoolmusicplayer
 
+import HomeScreen
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mycoolmusicplayer.ui.theme.MyCoolMusicPlayerTheme
 import android.provider.MediaStore
 import android.net.Uri
+import androidx.navigation.compose.rememberNavController
 
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +37,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ){
                     val playerViewModel: PlayerViewModel = viewModel()
+                    val navController = rememberNavController()
 
                     if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
@@ -44,13 +47,19 @@ class MainActivity : ComponentActivity() {
                             1
                         )
                     }
+
+
                     HomeScreen(
                         songs = getSongs(),
                         onSongClick = { song ->
-                            playerViewModel.playSong(song)
-                        }
+                            playerViewModel.playSong(song) },
+                        currentlyPlayingSong = playerViewModel.currentSong
 
 
+                    )
+                    PlayerScreen(
+                        viewModel = playerViewModel,
+                        song = getASong().first()
                     )
                 }
             }
@@ -105,7 +114,6 @@ class MainActivity : ComponentActivity() {
             artist = "Sample Artist",
             duration = 240000L // 4 minutes in milliseconds
         ))
-
         return songs
     }
 }
