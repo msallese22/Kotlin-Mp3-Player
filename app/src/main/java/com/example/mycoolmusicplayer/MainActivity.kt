@@ -23,6 +23,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mycoolmusicplayer.ui.theme.MyCoolMusicPlayerTheme
 import android.provider.MediaStore
 import android.net.Uri
+import androidx.compose.runtime.collectAsState
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 
@@ -39,6 +42,30 @@ class MainActivity : ComponentActivity() {
                     val playerViewModel: PlayerViewModel = viewModel()
                     val navController = rememberNavController()
 
+                    val songs = getSongs()
+                    playerViewModel.setSongs(songs)
+
+
+                    NavHost(navController = navController, startDestination = "home") {
+                        composable("home") {
+                            HomeScreen(
+                                songs = getSongs(),
+                                onSongClick = { song ->
+                                    playerViewModel.playSong(song)
+                                    navController.navigate("player")
+                                },
+                                playerViewModel = playerViewModel
+
+                            )
+                        }
+                        composable("player") {
+                            PlayerScreen(
+                                viewModel = playerViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+
                     if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
                         ActivityCompat.requestPermissions(
@@ -47,20 +74,6 @@ class MainActivity : ComponentActivity() {
                             1
                         )
                     }
-
-
-                    HomeScreen(
-                        songs = getSongs(),
-                        onSongClick = { song ->
-                            playerViewModel.playSong(song) },
-                        currentlyPlayingSong = playerViewModel.currentSong
-
-
-                    )
-                    PlayerScreen(
-                        viewModel = playerViewModel,
-                        song = getASong().first()
-                    )
                 }
             }
         }
@@ -103,18 +116,5 @@ class MainActivity : ComponentActivity() {
         return songs
     }
 
-    fun getASong(): List<Song> {
-        // This is just a placeholder function to return a sample song.
-        // In a real application, you would fetch this from the device's media store.
-        val songs = mutableListOf<Song>()
-
-        songs.add(Song(
-            uri = Uri.parse("content://media/external/audio/media/1"),
-            title = "Sample Song",
-            artist = "Sample Artist",
-            duration = 240000L // 4 minutes in milliseconds
-        ))
-        return songs
-    }
 }
 

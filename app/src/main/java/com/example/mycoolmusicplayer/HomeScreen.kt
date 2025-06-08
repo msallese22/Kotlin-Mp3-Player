@@ -6,10 +6,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.mycoolmusicplayer.JukeboxSongCard
+import com.example.mycoolmusicplayer.PlayerViewModel
 import com.example.mycoolmusicplayer.Song
 import com.example.mycoolmusicplayer.ui.theme.JukeboxRed
 import com.example.mycoolmusicplayer.ui.theme.JukeboxNeonBlue
@@ -22,40 +25,52 @@ import com.example.mycoolmusicplayer.ui.theme.JukeboxNeonBlue
 @Composable
 fun HomeScreen(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit,
-    currentlyPlayingSong: Song?
+    onSongClick: (Song) -> Unit, playerViewModel: PlayerViewModel
 ) {
+    val currentlyPlayingSong by playerViewModel.currentSong.collectAsState()
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(JukeboxNeonBlue)
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (currentlyPlayingSong != null) {
-                Text(
-                    text = "Now Playing: ${currentlyPlayingSong.title} - ${currentlyPlayingSong.artist}",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = JukeboxRed
-                )
-            } else {
-                Text(
-                    text = "My Cool Music Player",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = JukeboxRed
-                )
+        Row(
+
+        )
+        {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(JukeboxNeonBlue)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (currentlyPlayingSong.title.isNotEmpty()) {
+                    Text(
+                        text = "Now Playing: ${currentlyPlayingSong.title} - ${currentlyPlayingSong.artist}",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = JukeboxRed
+                    )
+                } else {
+                    Text(
+                        text = "My Cool Music Player",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = JukeboxRed
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)) {
-            items(songs) { song ->
-                JukeboxSongCard(song = song) { onSongClick(song) }
-                HorizontalDivider()
+        Row(
+
+        )
+        {
+            LazyColumn(modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)) {
+                items(songs) { song ->
+                    JukeboxSongCard(song = song) { onSongClick(song) }
+                    HorizontalDivider()
+                }
             }
         }
+
+
     }
 }
 

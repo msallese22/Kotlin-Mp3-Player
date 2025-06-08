@@ -10,22 +10,23 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel,
-    song: Song
+    onBack: () -> Unit
 ) {
+    val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val position by viewModel.position.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val loopMode by viewModel.loopMode.collectAsState()
     var volume by remember { mutableStateOf(1f) }
 
-    LaunchedEffect(song) {
-        viewModel.playSong(song)
-    }
 
     Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = song.title)
-        Text(text = song.artist)
-        // Seekbar
+        Button(onClick = onBack) {
+            Text("Back")
+        }
+        Text(text = currentSong.title)
+        Text(text = currentSong.artist)
+        // finds the time during the song, goes there.
         Slider(
             value = position.coerceAtMost(duration).toFloat(),
             onValueChange = { viewModel.seekTo(it.toLong()) },
