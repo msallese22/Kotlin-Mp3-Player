@@ -3,11 +3,18 @@ package com.example.mycoolmusicplayer
 
 import android.app.Application
 import android.net.Uri
+import androidx.annotation.OptIn
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.AssetDataSource
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -28,10 +35,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _loopMode = MutableStateFlow(LoopMode.NONE) //like my ipod's stuck on replay
     val loopMode: StateFlow<LoopMode> = _loopMode //tell me the state of the loop mode.
 
-    private val _currentSong = MutableStateFlow(Song(Uri.EMPTY, "", "", 0L)) // so it knows it'll change
-    val currentSong: StateFlow<Song> = _currentSong
+    private val _currentSong = MutableStateFlow(Song("", "", "", 0L)) // so it knows it'll change
+    val currentSong: StateFlow<Song> = _currentSong //because where the timer is in the current song will change.
 
-    private val _songs = MutableStateFlow<List<Song>>(emptyList())//it's a mutable state flow of a LIST, so it can be changed or observed. so it knows if it has stuff or no stuff.
+    private val _songs =
+        MutableStateFlow<List<Song>>(emptyList())//it's a mutable state flow of a LIST, so it can be changed or observed. so it knows if it has stuff or no stuff.
 
     private var currentIndex = -1 //song we are currently playing, if it's -1, then nothing is playing atm.
 
@@ -42,11 +50,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
             }
+
             override fun onPlaybackStateChanged(state: Int)  //getting the playback state of the player
             {
                 _duration.value = exoPlayer.duration.coerceAtLeast(0L)
             }
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) //exoplayer is a little punk and needs to be TOLD to change the name output of what it's playing.
+
+            override fun onMediaItemTransition(
+                mediaItem: MediaItem?,
+                reason: Int
+            ) //exoplayer is a little punk and needs to be TOLD to change the name output of what it's playing.
             {
                 val index = exoPlayer.currentMediaItemIndex
                 val song = _songs.value.getOrNull(index)
@@ -66,17 +79,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
 
-
+    //where we're getting the song from (assets) and then playing it.
+    @OptIn(UnstableApi::class)
     fun playSong(song: Song) {
-        val index = _songs.value.indexOfFirst { it.uri == song.uri } //URI -- Uniformed Resource Identifier -- tells me hey here is the reference to the file. Need this to make it go.
-        if (index != -1) {
-            //we don't want to prepare it twice, or else it'll never ever stop playing.
-            currentIndex = index
-            exoPlayer.seekTo(index, 0)
-            exoPlayer.play()// Shania Twain voice "let's go, girls"
-
-            _currentSong.value = song
-        }
+        _currentSong.value = song
+        currentIndex = _songs.value.indexOf(song) //find the index of the song in the list of songs
+        exoPlayer.seekTo(currentIndex, 0L) //seek to the index of the song
+        exoPlayer.play()
     }
 
     fun pause() = exoPlayer.pause() //duh
@@ -84,6 +93,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun seekTo(position: Long) = exoPlayer.seekTo(position) //position is a Long, so we can seek it.
     fun setLoopMode(mode: LoopMode) { //mode--- setting loop to the specific kind we want.
         _loopMode.value = mode
+        //exoPlayer understands what repeatMode is, here I am telling it "hey, set up the repeat modes to the loop modes I need."
         exoPlayer.repeatMode = when (mode) {
             LoopMode.NONE -> ExoPlayer.REPEAT_MODE_OFF
             LoopMode.ONE -> ExoPlayer.REPEAT_MODE_ONE
@@ -92,7 +102,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setVolume(volume: Float) {
-        exoPlayer.volume = volume //exoplayer has a volume property already in it. love that, love that.
+        exoPlayer.volume =
+            volume //exoplayer has a volume property already in it. love that, love that.
+    }
+
+    //we already have the current song, so we're returning it and then the next index of the item after that.
+    fun getNextSong(): Song? {
+        val songs = _songs.value //the songsssss
+        val currentIdx = exoPlayer.currentMediaItemIndex //the current index of the beautiful music
+        return when (_loopMode.value) {
+            LoopMode.ALL -> { //all them loop modes
+                if (songs.isEmpty()) null // no songs = no life
+                else songs.getOrNull((currentIdx + 1) % songs.size) //then we get the index +1 % the size of the list of songs! wowza!
+            }
+            LoopMode.ONE -> songs.getOrNull(currentIdx)
+            LoopMode.NONE -> songs.getOrNull(currentIdx + 1)
+        }//and it is also respecting what loopMode is doing for us and
     }
 
     override fun onCleared() {
@@ -101,36 +126,52 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     //setting up the songs to be in the player, then we can play them and have a party.
-    fun setSongs(songs: List<Song>) {
-        _songs.value = songs
-        val mediaItems = songs.map { MediaItem.fromUri(it.uri) }
-        exoPlayer.setMediaItems(mediaItems)
+    @OptIn(UnstableApi::class)
+    fun setSongs(songs: List<Song>, context: android.content.Context) {
+        exoPlayer.clearMediaItems()
+        songs.forEach { song ->
+            val dataSpec = DataSpec(Uri.parse("asset:///${song.assetFileName}"))
+
+            //it needs a Factory to create the data source for song! we learned about Factories in software development class.
+            val factory = DataSource.Factory {
+                AssetDataSource(context)
+            }
+
+            //needs to be a MediaItem because that is what ExoPlayer likes.
+            val mediaItem = MediaItem.fromUri(dataSpec.uri)
+
+            //and then we're creating a media source from the media item, so ExoPlayer can play it.
+            val mediaSource = ProgressiveMediaSource.Factory(factory)
+                .createMediaSource(mediaItem)
+
+            //and now that all the ingredients are together, we can finally cook this pot roast.
+            exoPlayer.addMediaSource(mediaSource)
+        }
+
         exoPlayer.prepare()
-        currentIndex = -1
+        _songs.value = songs //set the songs to the viewModel so it can be observed.
     }
 
     //gets the index of the current song, adds 1 to it to play the nxt
     fun playNext() {
-        val songsList = _songs.value
-        if (songsList.isNotEmpty()) {
-            val nextIndex = (currentIndex + 1).coerceAtMost(songsList.lastIndex)
-            if (nextIndex != currentIndex) {
-                playSong(songsList[nextIndex])
-            }
+        if (exoPlayer.hasNextMediaItem())
+        {
+            exoPlayer.seekToNext()
+            _currentSong.value = _songs.value.getOrNull(exoPlayer.currentMediaItemIndex)!!
         }
     }
 
-    //gets index of current song, subtracts 1 from it to play the previous
+
+//checking the next media item, then going to the one before it instead.
     fun playPrevious() {
-        val songsList = _songs.value
-        if (songsList.isNotEmpty()) {
-            val prevIndex = (currentIndex - 1).coerceAtLeast(0)
-            if (prevIndex != currentIndex) {
-                playSong(songsList[prevIndex])
-            }
+        if (exoPlayer.hasNextMediaItem())
+        {
+            exoPlayer.seekToPrevious()
+            _currentSong.value = _songs.value.getOrNull(exoPlayer.currentMediaItemIndex)!!
         }
     }
 
+    //formatting the duration so it doesn't look like hot garbage.
     fun formatDurationUs(durationUs: Long): String {
         val totalSeconds = durationUs / 1_000_000
         val minutes = totalSeconds / 60
