@@ -57,7 +57,6 @@ fun PlayerScreen(
             Button(onClick = { viewModel.playNext() }) {
                 Text("Next")
             }
-
         }
         Spacer(Modifier.width(8.dp))
         Row {
