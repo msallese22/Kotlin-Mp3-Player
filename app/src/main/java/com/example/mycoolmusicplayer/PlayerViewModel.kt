@@ -10,7 +10,6 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 
@@ -32,10 +31,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentSong = MutableStateFlow(Song(Uri.EMPTY, "", "", 0L)) // so it knows it'll change
     val currentSong: StateFlow<Song> = _currentSong
 
-    private val _songs = MutableStateFlow<List<Song>>(emptyList())
-    val songs: StateFlow<List<Song>> = _songs
+    private val _songs = MutableStateFlow<List<Song>>(emptyList())//it's a mutable state flow of a LIST, so it can be changed or observed. so it knows if it has stuff or no stuff.
 
-    private var currentIndex = -1
+    private var currentIndex = -1 //song we are currently playing, if it's -1, then nothing is playing atm.
 
 
     init {
@@ -102,12 +100,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared() //and then clear that viewModel like a toilet flush
     }
 
+    //setting up the songs to be in the player, then we can play them and have a party.
     fun setSongs(songs: List<Song>) {
         _songs.value = songs
         val mediaItems = songs.map { MediaItem.fromUri(it.uri) }
         exoPlayer.setMediaItems(mediaItems)
         exoPlayer.prepare()
         currentIndex = -1
+    }
+
+    //gets the index of the current song, adds 1 to it to play the nxt
+    fun playNext() {
+        val songsList = _songs.value
+        if (songsList.isNotEmpty()) {
+            val nextIndex = (currentIndex + 1).coerceAtMost(songsList.lastIndex)
+            if (nextIndex != currentIndex) {
+                playSong(songsList[nextIndex])
+            }
+        }
+    }
+
+    //gets index of current song, subtracts 1 from it to play the previous
+    fun playPrevious() {
+        val songsList = _songs.value
+        if (songsList.isNotEmpty()) {
+            val prevIndex = (currentIndex - 1).coerceAtLeast(0)
+            if (prevIndex != currentIndex) {
+                playSong(songsList[prevIndex])
+            }
+        }
     }
 
     fun formatDurationUs(durationUs: Long): String {

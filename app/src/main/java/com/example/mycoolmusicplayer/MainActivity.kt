@@ -35,13 +35,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MyCoolMusicPlayerTheme {
+                //setting the material surface so it knows to apply the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ){
+                    //about to tell it we need the navController and PlayerViewModel up in here. these give it purpose and functionality! I wish real life was this simple.
                     val playerViewModel: PlayerViewModel = viewModel()
                     val navController = rememberNavController()
 
+                    //without getSongs, there are no songs to get!
+                    //then we need to set it after we get it.
                     val songs = getSongs()
                     playerViewModel.setSongs(songs)
 
@@ -54,8 +58,12 @@ class MainActivity : ComponentActivity() {
                                     playerViewModel.playSong(song)
                                     navController.navigate("player")
                                 },
-                                playerViewModel = playerViewModel
-
+                                playerViewModel = playerViewModel,
+                                onNowPlayingClick = {
+                                    if (playerViewModel.currentSong.value.title.isNotEmpty()) {
+                                        navController.navigate("player")
+                                    }
+                                }
                             )
                         }
                         composable("player") {
@@ -79,6 +87,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    //retrieving the songs from the device's media storage! if there isn't anything in it, then it says "oh, okay" and doesn't do anything.
     fun getSongs(): List<Song> {
         val songs = mutableListOf<Song>()
         val projection = arrayOf(
@@ -98,12 +107,14 @@ class MainActivity : ComponentActivity() {
             sortOrder
         )
 
+        //cursor iterates through the results, and if something is there, it adds it up to the list!
         cursor?.use {
             val idColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val titleColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val durationColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
 
+            //going through the cursor and finding each song's details. moving 'it' to the next item.
             while (it.moveToNext()) {
                 val id = it.getLong(idColumn)
                 val title = it.getString(titleColumn)
@@ -115,6 +126,7 @@ class MainActivity : ComponentActivity() {
         }
         return songs
     }
+    //return what is found.
 
 }
 

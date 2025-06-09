@@ -1,7 +1,9 @@
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,14 +27,14 @@ import com.example.mycoolmusicplayer.ui.theme.JukeboxNeonBlue
 @Composable
 fun HomeScreen(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit, playerViewModel: PlayerViewModel
+    onSongClick: (Song) -> Unit,
+    playerViewModel: PlayerViewModel,
+    onNowPlayingClick: () -> Unit
 ) {
     val currentlyPlayingSong by playerViewModel.currentSong.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-
-        )
-        {
+        Row {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -44,7 +46,8 @@ fun HomeScreen(
                     Text(
                         text = "Now Playing: ${currentlyPlayingSong.title} - ${currentlyPlayingSong.artist}",
                         style = MaterialTheme.typography.titleLarge,
-                        color = JukeboxRed
+                        color = JukeboxRed,
+                        modifier = Modifier.clickable { onNowPlayingClick() }
                     )
                 } else {
                     Text(
@@ -55,22 +58,39 @@ fun HomeScreen(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        // Row with the playback controls buttons!
         Row(
-
-        )
-        {
-            LazyColumn(modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)) {
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(onClick = { playerViewModel.playPrevious() }) {
+                Text("Previous")
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = {
+                if (isPlaying) playerViewModel.pause() else playerViewModel.resume()
+            }) {
+                Text(if (isPlaying) "Pause" else "Play") //nifty condensed else statement, recognizes if the song is playing or not.
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = { playerViewModel.playNext() }) {
+                Text("Next")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp)) //giving my buttons some room to breathe.
+        Row {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
                 items(songs) { song ->
-                    JukeboxSongCard(song = song) { onSongClick(song) }
+                    JukeboxSongCard(song = song, playerViewModel = playerViewModel) { onSongClick(song) }
                     HorizontalDivider()
                 }
             }
-        }
-
-
+        } //now all the songs can live in harmony in a list. click it to go to it and play it.
     }
 }
-

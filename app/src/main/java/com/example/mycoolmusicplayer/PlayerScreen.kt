@@ -32,22 +32,37 @@ fun PlayerScreen(
             onValueChange = { viewModel.seekTo(it.toLong()) },
             valueRange = 0f..duration.toFloat()
         )
+            Text(
+                text = "${viewModel.formatDurationUs(position * 1000)} / ${viewModel.formatDurationUs(duration * 1000)}",
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
         Row {
+            Button(onClick = { viewModel.playPrevious() }) {
+                Text("Previous")
+            }
+            Spacer(Modifier.width(8.dp))
             Button(onClick = { if (isPlaying) viewModel.pause() else viewModel.resume() }) {
                 Text(if (isPlaying) "Pause" else "Play")
             }
             Spacer(Modifier.width(8.dp))
-            Button(onClick = {
-                val next = when (loopMode) {
-                    LoopMode.NONE -> LoopMode.ONE
-                    LoopMode.ONE -> LoopMode.ALL
-                    LoopMode.ALL -> LoopMode.NONE
+            Button(onClick = { viewModel.playNext() }) {
+                Text("Next")
+            }
+            Spacer(Modifier.width(8.dp))
+            Row{
+                Button(onClick = {
+                    val next = when (loopMode) {
+                        LoopMode.NONE -> LoopMode.ONE
+                        LoopMode.ONE -> LoopMode.ALL
+                        LoopMode.ALL -> LoopMode.NONE
+                    }
+                    viewModel.setLoopMode(next)
+                }) {
+                    Text("Loop: $loopMode")
                 }
-                viewModel.setLoopMode(next)
-            }) {
-                Text("Loop: $loopMode")
             }
         }
+
         // Volume control
         Text("Volume")
         Slider(
