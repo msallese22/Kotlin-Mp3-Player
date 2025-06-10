@@ -152,7 +152,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _songs.value = songs //set the songs to the viewModel so it can be observed.
     }
 
-    //gets the index of the current song, adds 1 to it to play the nxt
+    //checking if exoPlayer has a "next" media item, and then going to the next one, if it even exists.
     fun playNext() {
         if (exoPlayer.hasNextMediaItem())
         {

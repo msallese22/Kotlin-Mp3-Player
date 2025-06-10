@@ -86,6 +86,7 @@ fun HomeScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
+                //lambda function, iterates through te list of songs and creates JukeBoxSogCards for each one. Then, onSongClick gets called when it's clicked and does the thing (plays the song, takes you to the PlayerScreen).
                 items(songs) { song ->
                     JukeboxSongCard(song = song, playerViewModel = playerViewModel) { onSongClick(song) }
                     HorizontalDivider()

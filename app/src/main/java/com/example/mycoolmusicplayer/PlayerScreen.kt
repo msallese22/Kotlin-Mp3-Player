@@ -20,6 +20,7 @@ fun PlayerScreen(
     var volume by remember { mutableStateOf(1f) }
     val nextSong = viewModel.getNextSong()
 
+    //We need to get so many of these as "states" so the UI updates when they change. Joker from Persona taught me Life Will Change.
 
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -45,6 +46,7 @@ fun PlayerScreen(
             //formatting the duration so it doesn't look like a dumpster fire.
             modifier = Modifier.padding(vertical = 8.dp)
         )
+        //a row of buttons, how satisfying.
         Row {
             Button(onClick = { viewModel.playPrevious() }) {
                 Text("Previous")
